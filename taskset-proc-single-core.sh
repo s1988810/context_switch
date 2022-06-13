@@ -5,11 +5,11 @@ pId=`pgrep cs_test`
 
 #get the process id from the pId variable
 
-while read -r line
+while read line;
 do
-    taskset -pc 0 $line
+    taskset -pc 0 $line;
 
-done < <(pId)
+done <<< "$pId"
 
 
 

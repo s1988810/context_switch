@@ -37,7 +37,7 @@ static inline long long unsigned time_ns(struct timespec* const ts) {
 
 //get number of iterations as argument
 
-int main(int argc, char* argv) {
+int main(int argc, char** argv) {
 
     const int iterations = atoi(argv[1]);
 
@@ -50,6 +50,7 @@ int main(int argc, char* argv) {
     const pid_t other = fork();
 
     //taskset process to cpu 0 after creation
+    
     int status = system("~/context_switch/taskset-proc-single-core.sh");
     if (status == -1)
         printf("TASKSET FAILED!!!!\n");
