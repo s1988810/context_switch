@@ -27,10 +27,10 @@
 
 static inline long long unsigned time_ns(struct timespec* const ts) {
 
-  if (clock_gettime(CLOCK_REALTIME, ts)) {
-    exit(1);
-  }
-  return ((long long unsigned) ts->tv_sec) * 1000000000LLU
+    if (clock_gettime(CLOCK_REALTIME, ts)) {
+        exit(1);
+    }
+    return ((long long unsigned) ts->tv_sec) * 1000000000LLU
     + (long long unsigned) ts->tv_nsec;
 
 }
@@ -39,65 +39,68 @@ static inline long long unsigned time_ns(struct timespec* const ts) {
 
 int main(int argc, char* argv) {
 
-  const int iterations = atoi(argv[1]);
+    const int iterations = atoi(argv[1]);
 
-  struct timespec ts;
+    struct timespec ts;
 
-  //creates a shared memory identifier associated with a key
-  const int shm_id = shmget(IPC_PRIVATE, sizeof (int), IPC_CREAT | 0666);
+    //creates a shared memory identifier associated with a key
+    const int shm_id = shmget(IPC_PRIVATE, sizeof (int), IPC_CREAT | 0666);
 
-  //creates the process that will context switch with the current one
-  const pid_t other = fork();
+    //creates the process that will context switch with the current one
+    const pid_t other = fork();
 
-  // attach the shared memory segment associated
-  //with an identifier to the adress space of the calling process
-  int* futex = shmat(shm_id, NULL, 0);
-  *futex = 0xA;
-
-  if (other == 0) {
-    for (int i = 0; i < iterations; i++) {
-      //causes the calling thread to go to the end of the queue priority  
-      sched_yield();
-
-      //while the content of the futex equals the content of the 4th argument (0XA)
-      //the process that called the system call waits
-      while (syscall(SYS_futex, futex, FUTEX_WAIT, 0xA, NULL, NULL, 42)) {
-        // retry
-        sched_yield();
-      }
-
-      //
-
-      *futex = 0xB;
-      //saves the value of the old futex, changes it to a new one and wakes up all 
-      // waiters associating with that futex
-      while (!syscall(SYS_futex, futex, FUTEX_WAKE, 1, NULL, NULL, 42)) {
-        // retry
-        sched_yield();
-      }
-    }
-    return 0;
-  }
-
-  const long long unsigned start_ns = time_ns(&ts);
-  for (int i = 0; i < iterations; i++) {
+    //taskset process to cpu 0 after creation
+    int status = system("~/context_switch/taskset-proc-single-core.sh");
+    if (status == -1)
+        printf("TASKSET FAILED!!!!\n")
+    
+    // attach the shared memory segment associated
+    //with an identifier to the adress space of the calling process
+    int* futex = shmat(shm_id, NULL, 0);
     *futex = 0xA;
-    while (!syscall(SYS_futex, futex, FUTEX_WAKE, 1, NULL, NULL, 42)) {
-      // retry
-      sched_yield();
-    }
-    sched_yield();
-    while (syscall(SYS_futex, futex, FUTEX_WAIT, 0xB, NULL, NULL, 42)) {
-      // retry
-      sched_yield();
-    }
-  }
-  const long long unsigned delta = time_ns(&ts) - start_ns;
 
-  const int nswitches = iterations << 2;
-  printf("%i process context switches in %lluns (%.1fns/ctxsw)\n",
+    if (other == 0) {
+        for (int i = 0; i < iterations; i++) {
+            //causes the calling thread to go to the end of the queue priority  
+            sched_yield();
+
+            //while the content of the futex equals the content of the 4th argument (0XA)
+            //the process that called the system call waits
+            while (syscall(SYS_futex, futex, FUTEX_WAIT, 0xA, NULL, NULL, 42)) {
+                // retry
+                sched_yield();
+            }
+
+            *futex = 0xB;
+            //saves the value of the old futex, changes it to a new one and wakes up all 
+            // waiters associating with that futex
+            while (!syscall(SYS_futex, futex, FUTEX_WAKE, 1, NULL, NULL, 42)) {
+                // retry
+                sched_yield();
+            }
+        }
+        return 0;
+    }
+
+    const long long unsigned start_ns = time_ns(&ts);
+    for (int i = 0; i < iterations; i++) {
+        *futex = 0xA;
+        while (!syscall(SYS_futex, futex, FUTEX_WAKE, 1, NULL, NULL, 42)) {
+            // retry
+            sched_yield();
+        }
+        sched_yield();
+        while (syscall(SYS_futex, futex, FUTEX_WAIT, 0xB, NULL, NULL, 42)) {
+            // retry
+            sched_yield();
+        }
+    }
+    const long long unsigned delta = time_ns(&ts) - start_ns;
+
+    const int nswitches = iterations << 2;
+    printf("%i process context switches in %lluns (%.1fns/ctxsw)\n",
          nswitches, delta, (delta / (float) nswitches));
-  wait(futex);
-  return 0;
+    wait(futex);
+    return 0;
 
 }
