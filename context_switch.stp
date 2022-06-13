@@ -13,10 +13,8 @@ probe scheduler.cpu_off {
     
     cpu_id = task_cpu(task_current());
     context_switch_times[cpu_id] = gettimeofday_ns();
-    task_prev = $prev;
-    task_next = $next;
-    context_switch_prev[cpu_id] = task_prev;
-    context_switch_current[cpu_id] = task_next;
+    context_switch_prev[cpu_id] = execname();
+    context_switch_current[cpu_id] = $next;
 }
 
 /** 
@@ -27,12 +25,11 @@ probe scheduler.cpu_off {
  **/
 probe scheduler.cpu_on {
 
-    context_switch_end = gettimeofday_ns();
+    context_switch_off = gettimeofday_ns();
     cpu_id = task_cpu(task_current());
     context_switch_on = context_switch_times[cpu_id];
-
-    if (context_switch_on > 0 && context_switch_prev[cpu_id] == $prev && context_switch_current[cpu_id] == execname()) {
-        printf("%5d %5d %s CONTEXT_SWITCH_ON \n%5d %5d %s CONTEXT_SWITCH_OFF\n",  context_switch_on, cpu_id, $prev, context_switch_off, cpu_id, execname());
+    if (context_switch_on > 0 ) {
+        printf("%5d %5d %s CONTEXT_SWITCH_ON \n%5d %5d %s CONTEXT_SWITCH_OFF\n",  context_switch_on, cpu_id, context_switch_prev[cpu_id], context_switch_off, cpu_id, execname());
     }
 
 }
