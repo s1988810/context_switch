@@ -1,8 +1,9 @@
 ####################################################################
 # The following program prints the average context_switch time
 # and the histogram of the context_switch time per cpu and also
-# the overall histogram. It accepts as input the output file
-# of the systemtap context switch program and the number of the cpus
+# the overall histogram. It prints the cs per cpu and also the overall
+# number of context switches. It accepts as input the output file
+# of the systemtap context switch program and the number of the cpus.
 #   argv[1]: output of systemtap context _switch
 #   argv[2]: number of cpus
 #
@@ -48,7 +49,7 @@ def main(argv):
     
     print("Distribution Per CPU: ")
     
-    for i in range(0,20):
+    for i in range(0,num_cpus):
         per_cpu_cs = cs_overall[i];
         hist = {}
         start = min(per_cpu_cs)
@@ -89,6 +90,15 @@ def main(argv):
 
     print("Overall Average Context Switch Time: " + total_sum/total_counters)
 
+    print("Number of Context Switches per CPU:")
+    buckets="CPU "
+    buckets_values="#CS "
+
+    for j in cs_counter:
+        buckets = buckets + cs_counter.index(j) + " "
+        buckets_values = buckets_values + "j "
+    print(buckets)
+    print(buckets_values)
 
 if __name__ == "__main__":
   main(sys.argv)
