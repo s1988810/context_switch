@@ -35,7 +35,7 @@ static inline long long unsigned time_ns(struct timespec* const ts) {
 
 }
 
-#get number of iterations as argument
+//get number of iterations as argument
 
 int main(int argc, char* argv) {
 
@@ -52,7 +52,7 @@ int main(int argc, char* argv) {
     //taskset process to cpu 0 after creation
     int status = system("~/context_switch/taskset-proc-single-core.sh");
     if (status == -1)
-        printf("TASKSET FAILED!!!!\n")
+        printf("TASKSET FAILED!!!!\n");
     
     // attach the shared memory segment associated
     //with an identifier to the adress space of the calling process
