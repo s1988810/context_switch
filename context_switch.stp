@@ -1,0 +1,32 @@
+#! /usr/bin/env stap
+
+global context_switch_times;
+
+/** 
+ * kernel.function("context_switch") - Tracks the kernel function context_switch entry time
+ * @cpu_id: Name of the processor context_switch is running on
+ * @context_switch_times: Start time of the context switch
+ **/
+probe kernel.function("context_switch") {
+    
+    cpu_id = task_cpu(task_current());
+    context_switch_times[cpu_id] = gettimeofday_ns();
+    
+}
+
+/** 
+ * kernel.function("context_switch").return - Tracks the kernel function context_switch exit time and duration
+ * @context_switch_end: End time of the context switch 
+ * @cpu_id: Name of the processor context_switch is running on
+ * @context_switch_on: time the context switch started
+ **/
+probe kernel.function("context_switch").return {
+
+    context_switch_end = gettimeofday_ns();
+    cpu_id = task_cpu(task_current());
+    context_switch_on = context_switch_times[cpu_id];
+    if (context_switch_on > 0) {
+        printf("%5d %5d CONTEXT_SWITCH_ON \n%5d %5d CONTEXT_SWITCH_OFF\n",  context_switch_on, cpu_id, context_switch_off, cpu_id);
+    }
+
+}
