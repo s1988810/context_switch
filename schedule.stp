@@ -1,0 +1,32 @@
+#! /usr/bin/env stap
+
+global schedule_times;
+
+/** 
+ * kernel.function("schedule") - Tracks the kernel function schedule entry time
+ * @cpu_id: Name of the processor context_switch is running on
+ * @schedule_times: Start time of the context switch
+ **/
+probe kernel.function("schedule") {
+    
+    cpu_id = task_cpu(task_current());
+    schedule_times[cpu_id] = gettimeofday_ns();
+    
+}
+
+/** 
+ * kernel.function("schedule").return - Tracks the kernel function schedule exit time and duration
+ * @schedule_end: End time of the schedule 
+ * @cpu_id: Name of the processor schedule is running on
+ * @schedule_on: time the schedule started
+ **/
+probe kernel.function("schedule").return {
+
+    schedule_end = gettimeofday_ns();
+    cpu_id = task_cpu(task_current());
+    schedule_on = schedule_times[cpu_id];
+    if (schedule_on > 0) {
+        printf("%5d %5d SCHEDULE_ON \n%5d %5d SCHEDULE_OFF\n", schedule_on, cpu_id, schedule_off, cpu_id);
+    }
+
+}
